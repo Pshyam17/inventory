@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SupplyVision | Distribution Network</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo h1 {
+            font-size: 22px;
+            font-weight: 600;
+        }
+        
+        .logo span {
+            color: #3498db;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-info {
+            margin-right: 15px;
+            text-align: right;
+        }
+        
+        .user-name {
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .user-role {
+            font-size: 12px;
+            color: #bdc3c7;
+        }
+        
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            background-color: #3498db;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 500;
+        }
+        
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 220px;
+            background-color: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 5px;
+        }
+        
+        .sidebar-menu a {
+            display: block;
+            padding: 12px 20px;
+            color: #495057;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: #e9ecef;
+            color: #3498db;
+        }
+        
+        .sidebar-menu a.active {
+            border-left: 3px solid #3498db;
+        }
+        
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .content-header {
+            padding: 15px 25px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .content-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        #map-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .forecast-popup {
+            position: absolute;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
+            padding: 15px;
+            width: 350px;
+            z-index: 1000;
+            top: 20px;
+            right: 20px;
+            display: none;
+        }
+        
+        .forecast-popup h3 {
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #2c3e50;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .forecast-popup h3 .close-btn {
+            cursor: pointer;
+            font-size: 18px;
+            color: #777;
+        }
+        
+        .forecast-popup table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .forecast-popup table th, .forecast-popup table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+        
+        .forecast-popup table th {
+            color: #777;
+            font-weight: 500;
+        }
+        
+        .forecast-popup .status {
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .forecast-popup .status.up {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .forecast-popup .status.down {
+            background-color: #fbe9e7;
+            color: #d32f2f;
+        }
+        
+        .forecast-popup .loading {
+            text-align: center;
+            padding: 20px;
+            color: #777;
+        }
+        
+        .distribution-line {
+            stroke: #3498db;
+            stroke-width: 2;
+            stroke-dasharray: 5, 5;
+            animation: dash 30s linear infinite;
+        }
+        
+        @keyframes dash {
+            to {
+                stroke-dashoffset: 1000;
+            }
+        }
+        
+        .leaflet-marker-icon {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <h1>Supply<span>Vision</span></h1>
+        </div>
+        <div class="user-menu">
+            <div class="user-info">
+                <div class="user-name">Madison Chen</div>
+                <div class="user-role">Supply Chain Manager</div>
+            </div>
+            <div class="user-avatar">MC</div>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <div class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active">Distribution Network</a></li>
+                <li><a href="#">Inventory Dashboard</a></li>
+                <li><a href="#">Sales Forecasting</a></li>
+                <li><a href="#">Optimization Tools</a></li>
+                <li><a href="#">Logistics Management</a></li>
+                <li><a href="#">Reports</a></li>
+                <li><a href="#">Settings</a></li>
+            </ul>
+        </div>
+        
+        <div class="content">
+            <div class="content-header">
+                <div class="content-title">Global Distribution Network</div>
+            </div>
+            
+            <div id="map-container">
+                <div id="map"></div>
+                
+                <div class="forecast-popup" id="forecast-popup">
+                    <h3>
+                        <span id="center-name">Distribution Center</span>
+                        <span class="close-btn" onclick="closePopup()">&times;</span>
+                    </h3>
+                    <div id="forecast-content">
+                        <div class="loading">Loading forecast data...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.min.js"></script>
+    <script>
+        // Distribution centers data
+        const distributionCenters = [
+            { id: 'dc1', name: 'Chicago Hub', lat: 41.8781, lng: -87.6298, model_id: 'forecast_model_20240415123001' },
+            { id: 'dc2', name: 'Los Angeles Center', lat: 34.0522, lng: -118.2437, model_id: 'forecast_model_20240415123002' },
+            { id: 'dc3', name: 'New York Depot', lat: 40.7128, lng: -74.0060, model_id: 'forecast_model_20240415123003' },
+            { id: 'dc4', name: 'Atlanta Distribution', lat: 33.7490, lng: -84.3880, model_id: 'forecast_model_20240415123004' },
+            { id: 'dc5', name: 'Dallas Warehouse', lat: 32.7767, lng: -96.7970, model_id: 'forecast_model_20240415123005' },
+            { id: 'dc6', name: 'Seattle Center', lat: 47.6062, lng: -122.3321, model_id: 'forecast_model_20240415123006' }
+        ];
+        
+        // Define connections between distribution centers
+        const connections = [
+            ['dc1', 'dc2'],
+            ['dc1', 'dc3'],
+            ['dc1', 'dc4'],
+            ['dc1', 'dc5'],
+            ['dc2', 'dc6'],
+            ['dc3', 'dc4'],
+            ['dc5', 'dc6']
+        ];
+        
+        // Initialize the map
+        const map = L.map('map').setView([39.8283, -98.5795], 4); // Center on USA
+        
+        // Add tile layer (map background)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Custom marker icon
+        const dcIcon = L.icon({
+            iconUrl: '/api/placeholder/30/30',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15],
+            popupAnchor: [0, -15]
+        });
+        
+        // Add markers for distribution centers
+        const markers = {};
+        distributionCenters.forEach(center => {
+            const marker = L.marker([center.lat, center.lng], {icon: dcIcon})
+                .addTo(map)
+                .bindTooltip(center.name);
+                
+            marker.on('mouseover', () => showForecast(center));
+            markers[center.id] = marker;
+        });
+        
+        // Draw connections between centers
+        connections.forEach(conn => {
+            const center1 = distributionCenters.find(c => c.id === conn[0]);
+            const center2 = distributionCenters.find(c => c.id === conn[1]);
+            
+            if (center1 && center2) {
+                const polyline = L.polyline([
+                    [center1.lat, center1.lng],
+                    [center2.lat, center2.lng]
+                ], {
+                    color: '#3498db',
+                    weight: 2,
+                    opacity: 0.7,
+                    dashArray: '5, 5'
+                }).addTo(map);
+            }
+        });
+        
+        // Show forecast popup
+        function showForecast(center) {
+            const popup = document.getElementById('forecast-popup');
+            document.getElementById('center-name').textContent = center.name;
+            document.getElementById('forecast-content').innerHTML = '<div class="loading">Loading forecast data...</div>';
+            popup.style.display = 'block';
+            
+            // Fetch forecast data from the API
+            fetchForecastData(center);
+        }
+        
+        // Close forecast popup
+        function closePopup() {
+            document.getElementById('forecast-popup').style.display = 'none';
+        }
+        
+        // Fetch forecast data from the API
+        function fetchForecastData(center) {
+            // In a real application, you would make an actual API call
+            // For demonstration purposes, we'll simulate the API response
+            
+            // Sample input data for the forecast API (would normally come from your database)
+            const sampleData = {
+                model_id: center.model_id,
+                input_data: generateSampleData(center.id),
+                horizon: 10
+            };
+            
+            // Simulate API call with timeout
+            setTimeout(() => {
+                // This simulates the response - in a real app you'd call your actual API
+                const forecastResponse = simulateForecastApiResponse(center.id);
+                displayForecastResults(forecastResponse);
+            }, 700);
+        }
+        
+        // Generate sample data for the API call
+        function generateSampleData(centerId) {
+            // In a real app, this would be actual historical data from your database
+            const today = new Date();
+            const data = [];
+            
+            // Generate 30 days of historical data
+            for (let i = 30; i >= 1; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                
+                data.push({
+                    date: date.toISOString().split('T')[0],
+                    sales: Math.floor(Math.random() * 1000) + 500,
+                    inventory: Math.floor(Math.random() * 500) + 100,
+                    price: Math.floor(Math.random() * 50) + 10,
+                    marketing_spend: Math.floor(Math.random() * 1000) + 100,
+                    product_id: `PROD${Math.floor(Math.random() * 10) + 1}`
+                });
+            }
+            
+            return data;
+        }
+        
+        // Simulate the forecast API response
+        function simulateForecastApiResponse(centerId) {
+            // This would be the actual response from your BiLSTM API
+            const products = [
+                { product_id: "PROD1", name: "Premium Headphones", forecast: 342, trend: "up" },
+                { product_id: "PROD2", name: "Wireless Keyboard", forecast: 287, trend: "up" },
+                { product_id: "PROD3", name: "Ultra HD Monitor", forecast: 189, trend: "down" },
+                { product_id: "PROD4", name: "Gaming Mouse", forecast: 176, trend: "up" },
+                { product_id: "PROD5", name: "Laptop Stand", forecast: 143, trend: "up" },
+                { product_id: "PROD6", name: "USB-C Hub", forecast: 132, trend: "down" },
+                { product_id: "PROD7", name: "Bluetooth Speaker", forecast: 128, trend: "up" },
+                { product_id: "PROD8", name: "Wireless Charger", forecast: 112, trend: "down" },
+                { product_id: "PROD9", name: "HDMI Cable", forecast: 97, trend: "down" },
+                { product_id: "PROD10", name: "Portable SSD", forecast: 86, trend: "up" }
+            ];
+            
+            // Add some randomization based on center ID to differentiate forecasts
+            const firstDigit = parseInt(centerId.replace('dc', ''));
+            
+            return {
+                center_id: centerId,
+                forecasts: products.map(product => ({
+                    ...product,
+                    forecast: product.forecast + (firstDigit * 10) + Math.floor(Math.random() * 50)
+                }))
+            };
+        }
+        
+        // Display forecast results in the popup
+        function displayForecastResults(response) {
+            const content = document.getElementById('forecast-content');
+            
+            // Sort products by forecast value (descending)
+            const sortedProducts = response.forecasts.sort((a, b) => b.forecast - a.forecast);
+            
+            let html = `
+                <h4>Top 10 Forecasted Products</h4>
+                <table>
+                    <tr>
+                        <th>Product</th>
+                        <th>Forecast Units</th>
+                        <th>Trend</th>
+                    </tr>
+            `;
+            
+            sortedProducts.forEach(product => {
+                html += `
+                    <tr>
+                        <td>${product.name}</td>
+                        <td>${product.forecast}</td>
+                        <td><span class="status ${product.trend}">${product.trend === 'up' ? '▲' : '▼'}</span></td>
+                    </tr>
+                `;
+            });
+            
+            html += `</table>`;
+            content.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
